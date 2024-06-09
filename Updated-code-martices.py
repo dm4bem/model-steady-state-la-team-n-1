@@ -323,7 +323,7 @@ print(np.shape(Bs))
 
 # Steady-state analysis
 θ = np.linalg.inv(A.T @ np.diag(G) @ A) @ (A.T @ np.diag(G) @ b.values + f.values)
-print(f'theta = {θ} °C')
+print(f'theta = {np.around(θ, 2)} °C')
 
 # Steady state analysis
 bT = np.array([15, 15, 15, 15, 5, 5, 19, 19])  # [To, To, To, Tisp]
@@ -333,7 +333,7 @@ print(f'u = {u}')
 print(np.shape(u))
 
 yss = (-Cs @ np.linalg.inv(As) @ Bs + Ds) @ u
-print(f'yss = {yss} °C')
+print(f'yss = {np.around(yss, 2)} °C')
 print(f'Max error between DAE and state-space: {max(abs(θ[11] - yss)):.2e} °C')
 
 # Dynamic simulation
