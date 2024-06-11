@@ -153,7 +153,7 @@ print(np.shape(u))
 yss = (-Cs @ np.linalg.inv(As) @ Bs + Ds) @ u
 print(f'yss = {np.around(yss, 2)} °C')
 print(f'Max error between DAE and state-space: \
-{max(abs(θ[11] - yss)):.2e} °C')
+{max(abs(θ[5] - yss)):.2e} °C')
 
 #dynamic simulation
 
