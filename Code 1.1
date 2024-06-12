@@ -1,0 +1,202 @@
+import numpy as np
+import pandas as pd
+import dm4bem
+import matplotlib.pyplot as plt
+
+# temperature nodes
+θ = ['θ0', 'θ1', 'θ2', 'θ3', 'θ4', 'θ5', 'θ6', 'θ7', 'θ8', 'θ9', 'θ10', 'θ11', 'θ12', 'θ13', 'θ14', 'θ15', 'θ16', 'θ17',
+     'θ18', 'θ19', 'θ20']
+
+# flow-rate branches
+q = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10', 'q11', 'q12', 'q13', 'q14', 'q15', 'q16', 'q17',
+     'q18', 'q19', 'q20', 'q21', 'q22', 'q23', 'q24', 'q25', 'q26', 'q27']
+
+#defining A
+A = np.zeros([28, 21])  # n° of branches X n° of nodes
+A[0, 0] = 1  # node 0
+A[1, 1], A[2, 1] = 1, -1   # node 1
+A[2, 2], A[3, 2] = 1, -1   # node 2
+A[3, 3], A[4, 3] = 1, -1   # node 3
+A[4, 4], A[5, 4] = 1, -1   # node 4
+A[5, 5], A[6, 5], A[17, 5], A[22, 5],  = 1, -1, 1, 1  # node 5
+A[6, 6], A[7, 6] = 1, -1   # node 6
+A[7, 7], A[8, 7] = 1, -1   # node 7
+A[8, 8], A[9, 8] = 1, -1   # node 8
+A[9, 9], A[10, 9], A[19, 9], A[21, 9], A[25, 9] = 1, 1, 1, 1, 1  # node 9
+A[10, 10], A[11, 10] = -1, 1  # node 10
+A[11, 11], A[12, 11] = -1, 1  # node 11
+A[12, 12], A[13, 12] = -1, 1  # node 12
+A[13, 13], A[14, 13] = -1, 1  # node 13
+A[14, 14], A[15, 14] = -1, 1  # node 14
+A[16, 15], A[17, 15] = 1, -1  # node 15
+A[18, 16], A[19, 16] = 1, -1  # node 16
+A[26, 17], A[25, 17] = 1, -1  # node 17
+A[27, 18], A[26, 18] = 1, -1  # node 18
+A[23, 19], A[22, 19] = 1, -1  # node 19
+A[24, 20], A[23, 20] = 1, -1  # node 20
+pd.DataFrame(A, index=q, columns=θ)
+#print(A)
+
+#defining G
+# Create the Series
+G = pd.Series([2200, 528, 22.46, 22, 352, 2200, 1500, 240, 240, 1500, 3000, 480, 30, 30.63,
+               720, 3000, 76.27, 76.27, 76.27, 76.27, 50.6, 101.2, 750, 8, 8, 750, 8, 8], index=q)
+
+# Convert the Series to a DataFrame
+pd.DataFrame(G, index=q)
+
+# Display the DataFrame
+#print(G)
+
+#defining C
+#capacitances
+
+cc = 0.9
+ci = 0.18
+cw = 1.76
+cg = 0.84
+
+# densities
+dc = 2300
+di = 12
+dw = 600
+dg = 2500
+
+# Surface
+s1 = 45
+s2 = 30
+s3 = 60
+s4 = 15
+s5 = 30
+s_window = 1
+
+# Thickness
+tc = 0.2
+ti = 0.15
+tw = 0.02
+tg = 0.02
+
+# Create the Series
+C = pd.Series([
+    0,
+    18630,     # cc * dc * s1 * tc
+    145.8,     # ci * di * s1 * ti
+    950.4,     # cw * dw * s1 * tw
+    0,
+    0,
+    0,
+    633.6,     # cw * dw * s2 * tw
+    0,
+    0,
+    0,
+    1900.8,    # cw * dw * s3 * tw
+    194.4,     # ci * di * s3 * ti
+    37260,     # cc * dc * s3 * tc
+    0,
+    42,        # cg * dg * s_window * tg
+    42,        # cg * dg * s_window * tg
+    81,        # s5 * ci * ti * di
+    0,
+    27,        # s4 * ci * ti * di
+    0
+], index=θ)
+
+# Convert the Series to a DataFrame
+pd.DataFrame(C, index=θ)
+
+# Display the DataFrame
+#print(C)
+
+#defining b
+To = 15
+Tf = 5  # cooling system
+Ti_sp = 19
+b = pd.Series(0,index=q)
+b[0] = b[15] = b[16] = b[18] = To
+b[20] = b[21] = Ti_sp
+b[24] = b[27] = Tf
+#print(b)
+
+#defining f
+# heatflow rate sources vector f _______________________________________________
+E = 200
+f = pd.Series(0, index=θ)
+f[0] = E*45
+f[14] = E*60
+
+# solar radiation @ indoor wall: θ = 4,8,10,14,17,19 ( wall room)
+walls_rad_in = [4, 6, 8, 10, 15, 16, 17, 19]
+
+# absorbed short-wave solar radiation [W/m2] * wall surface [m2]
+f[walls_rad_in] = E * 1/4
+
+#print(f)
+
+#defining y
+y = np.zeros(21)  # nodes
+y[[5]] = y[[9]] = 1  # nodes (temperatures) of interest
+pd.DataFrame(y, index=θ)
+
+# thermal circuit
+A = pd.DataFrame(A, index=q, columns=θ)
+G = pd.Series(G, index=q)
+C = pd.Series(C, index=θ)
+b = pd.Series(b, index=q)
+f = pd.Series(f, index=θ)
+y = pd.Series(y, index=θ)
+
+
+TC = {"A": A,
+      "G": G,
+      "C": C,
+      "b": b,
+      "f": f,
+      "y": y}
+
+# State-space
+[As, Bs, Cs, Ds, us] = dm4bem.tc2ss(TC)
+
+#Steady-state from differential algebraic equations (DAE)
+A = TC['A']
+G = TC['G']
+diag_G = pd.DataFrame(np.diag(G), index=G.index, columns=G.index)
+
+θss = np.linalg.inv(A.T @ diag_G @ A) @ (A.T @ diag_G @ b + f)
+#print(f'θss = {np.around(θss, 2)} °C')
+
+#Steady-state from state-space representation
+bT = np.array([15, 15, 15, 15, 19, 19, 5, 5])     # [To, To, To, Tisp]
+fQ = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])        # [Φo, Φi, Qa, Φa]
+uss = np.hstack([bT, fQ])           # input vector for state space
+#print(f'uss = {uss}')
+#The steady-state value of the output of the state-space representation is obtained when theta dot=0
+inv_As = pd.DataFrame(np.linalg.inv(As),
+                      columns=As.index, index=As.index)
+yss = (-Cs @ inv_As @ Bs + Ds) @ uss
+yss5 = float(yss.values[0])
+yss9 = float(yss.values[1])
+
+#print(f'yss5 = {yss5:.2f} °C')
+#print(f'yss9 = {yss9:.2f} °C')
+
+print(f'Error between DAE and state-space at node 5: {abs(θss[5] - yss5):.2e} °C')
+print(f'Error between DAE and state-space at node 9: {abs(θss[9] - yss9):.2e} °C')
+# Eigenvalues analysis
+
+λ = np.linalg.eig(As)[0]        # eigenvalues of matrix As
+# time step
+imposed_time_step = False
+Δt = 498    # s, imposed time step
+Δtmax = 2 * min(-1. / λ)    # max time step for stability of Euler explicit
+dm4bem.print_rounded_time('Δtmax', Δtmax)
+
+if imposed_time_step:
+    dt = Δt
+else:
+    dt = dm4bem.round_time(Δtmax)
+dm4bem.print_rounded_time('dt', dt)
+if dt < 10:
+    raise ValueError("Time step is too small. Stopping the script.")
+# settling time
+t_settle = 4 * max(-1 / λ)
+dm4bem.print_rounded_time('t_settle', t_settle)
